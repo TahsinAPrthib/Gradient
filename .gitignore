@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/app/generated/prisma
+
+# editor-specific copies of the vendored skills (.claude/ is the one we keep)
+.agents/
+.windsurf/

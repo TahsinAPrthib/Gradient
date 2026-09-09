@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  ALUMNI
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ReferralStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REFERRED
+}
+
+enum SessionMode {
+  VIDEO_CALL
+  CHAT
+  IN_PERSON
+}
+
+enum Industry {
+  SOFTWARE
+  FINANCE
+  HEALTHCARE
+  EDUCATION
+  CONSULTING
+  GOVERNMENT
+  MEDIA
+  MANUFACTURING
+  NONPROFIT
+  OTHER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  studentProfile StudentProfile?
+  alumniProfile  AlumniProfile?
+}
+
+model StudentProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  field       String
+  currentYear Int
+  gradYear    Int
+  interests   String[]
+
+  bookings         Booking[]
+  referralRequests ReferralRequest[]
+}
+
+model AlumniProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  gradYear      Int
+  industry      Industry
+  company       String
+  jobTitle      String
+  bio           String?
+  expertiseTags String[]
+  verified      Boolean  @default(false)
+
+  // NULL = still in the admin queue. Set when an admin verifies OR rejects,
+  // which is what lets a rejected alumnus leave the pending list.
+  verificationReviewedAt DateTime?
+
+  slots            AvailabilitySlot[]
+  referralRequests ReferralRequest[]
+}
+
+model AvailabilitySlot {
+  id          String        @id @default(cuid())
+  alumniId    String
+  alumni      AlumniProfile @relation(fields: [alumniId], references: [id])
+  date        DateTime
+  durationMin Int
+  mode        SessionMode
+  isBooked    Boolean       @default(false)
+
+  booking Booking?
+}
+
+model Booking {
+  id        String           @id @default(cuid())
+  slotId    String           @unique
+  slot      AvailabilitySlot @relation(fields: [slotId], references: [id])
+  studentId String
+  student   StudentProfile   @relation(fields: [studentId], references: [id])
+  status    BookingStatus    @default(PENDING)
+  notes     String?
+  createdAt DateTime         @default(now())
+
+  review Review?
+}
+
+model ReferralRequest {
+  id            String         @id @default(cuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  alumniId      String
+  alumni        AlumniProfile  @relation(fields: [alumniId], references: [id])
+  targetCompany String
+  targetRole    String
+  resumeLink    String?
+  note          String?
+  status        ReferralStatus @default(PENDING)
+  createdAt     DateTime       @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
